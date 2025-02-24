@@ -1,5 +1,7 @@
 import pygame
 import sys
+import noise
+import numpy as np
 
 # Initialize Pygame
 pygame.init()
@@ -17,6 +19,9 @@ GREEN = (0, 255, 0)
 BROWN = (139, 69, 19)
 BLACK = (0, 0, 0)
 
+# Load Mario image
+mario_image = pygame.image.load('mario.png')
+
 # Mario attributes
 mario_width = 40
 mario_height = 60
@@ -30,24 +35,46 @@ jump_count = 10
 clock = pygame.time.Clock()
 
 def draw_mario():
-    pygame.draw.rect(screen, (255, 0, 0), (mario_x, mario_y, mario_width, mario_height))
+    screen.blit(mario_image, (mario_x, mario_y))
 
-def draw_level():
+def generate_level():
+    level = np.zeros((SCREEN_WIDTH, SCREEN_HEIGHT))
+    scale = 100.0
+    octaves = 6
+    persistence = 0.5
+    lacunarity = 2.0
+
+    for i in range(SCREEN_WIDTH):
+        for j in range(SCREEN_HEIGHT):
+            level[i][j] = noise.pnoise2(i/scale, 
+                                        j/scale, 
+                                        octaves=octaves, 
+                                        persistence=persistence, 
+                                        lacunarity=lacunarity, 
+                                        repeatx=SCREEN_WIDTH, 
+                                        repeaty=SCREEN_HEIGHT, 
+                                        base=0)
+    return level
+
+def draw_level(level):
     # Draw sky
     screen.fill(BLUE)
     
     # Draw ground
     pygame.draw.rect(screen, GREEN, (0, SCREEN_HEIGHT - 50, SCREEN_WIDTH, 50))
     
-    # Draw some platforms (simple representation)
-    pygame.draw.rect(screen, BROWN, (150, SCREEN_HEIGHT - 100, 100, 20))  # platform 1
-    pygame.draw.rect(screen, BROWN, (300, SCREEN_HEIGHT - 150, 100, 20))  # platform 2
+    # Draw some platforms based on Perlin noise
+    for i in range(SCREEN_WIDTH):
+        for j in range(SCREEN_HEIGHT):
+            if level[i][j] > 0:
+                pygame.draw.rect(screen, BROWN, (i, j, 1, 1))
 
 def main():
     global mario_y, jumping, jump_count
+    level = generate_level()
     while True:
         screen.fill(WHITE)
-        draw_level()
+        draw_level(level)
         draw_mario()
 
         # Event handling
